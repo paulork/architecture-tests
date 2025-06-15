@@ -16,7 +16,7 @@ public class ProdutoService {
     private ProdutoController prodController;
 
     public Produto save(Produto produto) {
-        String id = produto.getId();
+        // String id = produto.getId(); // Unused variable removed
         return prodRepository.save(produto);
     }
 

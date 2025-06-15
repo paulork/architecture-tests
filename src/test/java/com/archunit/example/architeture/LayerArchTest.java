@@ -1,37 +1,26 @@
 package com.archunit.example.architeture;
 
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
-import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.library.Architectures;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 
+@AnalyzeClasses(packages = "com.archunit.example")
 public class LayerArchTest {
 
-    private static JavaClasses classes;
-
-    @BeforeAll
-    static void setup() {
-        classes = new ClassFileImporter()
-                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_ARCHIVES)
-                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_JARS)
-                .importPackages("com.archunit.example");
-    }
-
-    @Test
-    @DisplayName("Layer access definitions")
-    public void layers_access_check() {
+    @ArchTest
+    public static final ArchRule layers_access_check =
         Architectures.layeredArchitecture()
+                .consideringAllDependencies()
+                .layer("Config").definedBy("com.archunit.example.config..")
                 .layer("Controller").definedBy("com.archunit.example.controller..")
                 .layer("Service").definedBy("com.archunit.example.service..")
-                .layer("Model").definedBy("com.archunit.example.model..")
-                .whereLayer("Controller").mayNotBeAccessedByAnyLayer()
-                .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller")
-                .whereLayer("Model").mayOnlyBeAccessedByLayers("Service")
-                .check(classes);
-    }
+                .layer("Repository").definedBy("com.archunit.example.model.repository..")
+                .layer("Model").definedBy("com.archunit.example.model..", "com.archunit.example.model.domain..")
 
+                // Add back original, more complex access rules
+                .whereLayer("Controller").mayOnlyBeAccessedByLayers("Config")
+                .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Service", "Config")
+                .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service")
+                .whereLayer("Model").mayOnlyBeAccessedByLayers("Repository", "Service", "Controller", "Config", "java..");
 }

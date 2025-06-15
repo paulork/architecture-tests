@@ -1,10 +1,22 @@
 ## ArchUnit
 
-[ArchUnit](http://www.archunit.org) é uma biblioteca que lhe ajuda a 'checar' certos aspectos da arquitetura de um projeto Java. Com ela você consegue delimitar certas ações e fronteiras arquiteturais, afim de manter coesa a arquitetura do seu projeto.
+[ArchUnit](http://www.archunit.org) is a library that helps you 'check' certain aspects of a Java project's architecture. With it, you can define certain architectural actions and boundaries to keep your project's architecture cohesive.
+
+This example project demonstrates how to use ArchUnit to enforce architectural rules in a Spring Boot application.
+
+### Project Structure Examples
 
 #### Controller
 
 ```java
+package com.archunit.example.controller;
+
+import com.archunit.example.model.domain.Produto;
+import com.archunit.example.service.ProdutoService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
 @RestController
 @RequestMapping("/api/produto")
 public class ProdutoController {
@@ -29,18 +41,28 @@ public class ProdutoController {
     public void removeById(@PathVariable String produto_id) {
         prodService.removeById(produto_id);
     }
-
 }
 ```
 
 #### Service
 
 ```java
+package com.archunit.example.service;
+
+import com.archunit.example.model.domain.Produto;
+import com.archunit.example.model.repository.ProdutoRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 @Service
 public class ProdutoService {
 
     @Autowired
     private ProdutoRepository prodRepository;
+
+    // Example of a dependency that might be restricted by ArchUnit rules
+    // @Autowired
+    // private ProdutoController prodController;
 
     public Produto save(Produto produto) {
         return prodRepository.save(produto);
@@ -54,180 +76,223 @@ public class ProdutoService {
     public void removeById(String produto_id) {
         prodRepository.deleteById(produto_id);
     }
-
 }
 ```
 
 #### Repository
 
 ```java
+package com.archunit.example.model.repository;
+
+import com.archunit.example.model.domain.Produto;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
 @Repository
 public interface ProdutoRepository extends JpaRepository<Produto, String> {
 }
 ```
 
-### Testando a arquitetura
+### Testing the Architecture
 
-Antes de criarmos os testes, precisamos adicionar a dependência do ArchUnit ao 'pom.xml' do nosso projeto.
+Before creating tests, we need to add the ArchUnit dependency to our project's `pom.xml`.
 
 ```xml
 <dependency>
     <groupId>com.tngtech.archunit</groupId>
     <artifactId>archunit</artifactId>
-    <version>0.13.0</version>
+    <version>1.0.1</version>
     <scope>test</scope>
 </dependency>
 ```
 
-Com isso já podemos criar os testes e começar a 'checar' os limites que queremos para a nossa arquitetura, e faremos isso iniciando pelos controllers.
+For JUnit 5 integration, you also need to include `archunit-junit5-api` and the engine:
 
-#### Controller
+```xml
+<dependency>
+    <groupId>com.tngtech.archunit</groupId>
+    <artifactId>archunit-junit5-api</artifactId>
+    <version>1.0.1</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>com.tngtech.archunit</groupId>
+    <artifactId>archunit-junit5-engine</artifactId>
+    <version>1.0.1</version>
+    <scope>test</scope>
+</dependency>
+```
+(Note: Often, just including `archunit-junit5` is sufficient as it brings in both `api` and `engine` transitively. However, this project explicitly uses `archunit-junit5-api` directly in the `pom.xml`.)
 
+
+With this, we can create the tests and start 'checking' the limits we want for our architecture. We'll begin with the controllers.
+
+All test classes should be annotated with `@AnalyzeClasses` to specify the packages to be imported for analysis. For example:
 ```java
-// -----------------------------------------------------------------------------------------------------------------
-// Controllers precisam ter a anotação @RestController e a classe o sufixo Controller.
-@Test
-@DisplayName("Controlers should have 'RestController' annotation and should have suffix 'Controller'")
-public void controllers_should_have_annotation_and_suffix_controller() {
-classes().that().resideInAPackage("..controller..")
-        .should().beAnnotatedWith(RestController.class)
-        .andShould().haveSimpleNameEndingWith("Controller")
-        .check(classes);
-}
+import com.tngtech.archunit.junit.AnalyzeClasses;
 
-// -----------------------------------------------------------------------------------------------------------------
-// Controllers só são permitidos dentro do seu pacote (com.archunit.example.controller)
-@Test
-@DisplayName("Should not have classes with '@RestController' and/or suffix 'Controller' outside Controllers package")
-public void controllers_should_not_exists_outside_of_your_package() {
-noClasses().that().resideOutsideOfPackage("..controller..")
-        .should().beAnnotatedWith(RestController.class)
-        .orShould().haveSimpleNameEndingWith("Controller")
-        .check(classes);
-}
-
-//------------------------------------------------------------------------------------------------------------------
-// Controllers não podem ser acessados por services, repositories ou qualquer outra classe do seu projeto.
-@Test
-@DisplayName("Controllers should not be accessed from outside your package")
-public void controllers_should_not_be_accessed_from_outsite_your_package() {
-noClasses().that().resideOutsideOfPackage("..controller..")
-        .should().accessClassesThat().resideInAPackage("..controller..")
-        .check(classes);
-}
-
-//------------------------------------------------------------------------------------------------------------------
-// Controllers acessam apenas Services, não repositories diretamente.
-@Test
-@DisplayName("Controllers should only access classes in Services package")
-public void controllers_should_only_access_classes_in_service_package() {
-classes().that().resideInAPackage("..controller..")
-        .should().onlyAccessClassesThat().resideInAnyPackage(commonPackagesAnd("..service.."))
-        .check(classes);
+@AnalyzeClasses(packages = "com.archunit.example")
+public class ControllerArchTest {
+    // ... tests ...
 }
 ```
 
-#### Service
+#### Controller Rules Example
 
 ```java
-//------------------------------------------------------------------------------------------------------------------
-// Services precisam ter a anotação @Service e a classe o sufixo Service.
-@Test
-@DisplayName("Services should have '@Service' anotation and suffix 'Service'")
-public void services_should_have_anotation_and_suffix_service() {
-classes().that().resideInAPackage("..service..")
-        .should().beAnnotatedWith(Service.class)
-        .andShould().haveSimpleNameEndingWith("Service")
-        .check(classes);
-}
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
+import org.springframework.web.bind.annotation.RestController;
 
-//------------------------------------------------------------------------------------------------------------------
-// Services só são permitidos dentro do seu pacote (com.archunit.example.service).
-@Test
-@DisplayName("Repositories should only exists in your package")
-public void repositories_should_only_exists_in_repository_package() {
-noClasses().that().resideOutsideOfPackage("..service..")
-        .should().beAnnotatedWith(Service.class)
-        .orShould().haveSimpleNameEndingWith("Service")
-        .check(classes);
-}
+import static com.archunit.example.architeture.ArchTestConstants.commonPackagesAnd;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
-//------------------------------------------------------------------------------------------------------------------
-// Services são chamados por Controllers e outros Services, e se utilizam de repositories.
-@Test
-@DisplayName("Services should only be accessed by controllers or other services")
-public void services_should_only_be_accessed_by_controllers_or_other_services() {
-classes().that().resideInAPackage("..service..")
-        .should().onlyBeAccessed().byAnyPackage("..controller..", "..service..")
-        .check(classes);
-}
+@AnalyzeClasses(packages = "com.archunit.example")
+public class ControllerArchTest {
 
-@Test
-@DisplayName("Service should only access other services and repositories")
-public void services_should_only_access_other_services_and_repositories() {
-classes().that().resideInAPackage("..service..")
-        .should().accessClassesThat().resideInAnyPackage("..repository..", "..service..")
-        .check(classes);
+    // Rule: Controllers must have the @RestController annotation and the class name should end with 'Controller'.
+    @ArchTest
+    public static final ArchRule controllers_should_have_annotation_and_suffix_controller =
+        classes().that().resideInAPackage("..controller..")
+                .should().beAnnotatedWith(RestController.class)
+                .andShould().haveSimpleNameEndingWith("Controller");
+
+    // Rule: Controllers are only allowed within their package (com.archunit.example.controller)
+    @ArchTest
+    public static final ArchRule controllers_should_not_exists_outside_of_your_package =
+        noClasses().that().resideOutsideOfPackage("..controller..")
+                .should().beAnnotatedWith(RestController.class)
+                .orShould().haveSimpleNameEndingWith("Controller");
+
+    // Rule: Controllers should not be accessed by services, repositories, or any other class in your project (except Config).
+    @ArchTest
+    public static final ArchRule controllers_should_not_be_accessed_from_outsite_your_package =
+        noClasses().that().resideOutsideOfPackage("..controller..")
+                .and().resideOutsideOfPackage("..config..") // Allowing config classes to access controllers
+                .should().accessClassesThat().resideInAPackage("..controller..");
+
+    // Rule: Controllers should only access Services, not repositories directly.
+    // (commonPackagesAnd includes basic Java, Spring, and controller packages itself)
+    @ArchTest
+    public static final ArchRule controllers_should_only_access_classes_in_service_package =
+        classes().that().resideInAPackage("..controller..")
+                .should().onlyAccessClassesThat().resideInAnyPackage(commonPackagesAnd("..service..", "..controller.."));
 }
 ```
 
-#### Repository
-
+#### Service Rules Example
 ```java
-//------------------------------------------------------------------------------------------------------------------
-// Repositories são interfaces, tem o sufixo Repository, extendem CrudRepository e tem a anotação @Repository.
-@Test
-@DisplayName("Repositories should have '@Repository' anotation, suffix 'Repository', be interfaces")
-public void repositories_should_have_anotation_and_suffix_repository_be_interfaces() {
-classes().that().resideInAPackage("..repository..")
-        .should().beAnnotatedWith(Repository.class)
-        .andShould().haveSimpleNameEndingWith("Repository")
-        .andShould().beInterfaces()
-        .andShould().beAssignableTo(CrudRepository.class)
-        .check(classes);
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
+import org.springframework.stereotype.Service;
+
+import static com.archunit.example.architeture.ArchTestConstants.commonPackagesAnd;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+@AnalyzeClasses(packages = "com.archunit.example")
+public class ServiceArchTest {
+
+    // Rule: Services must have the @Service annotation and the class name should end with 'Service'.
+    @ArchTest
+    public static final ArchRule services_should_have_anotation_and_suffix_service =
+        classes().that().resideInAPackage("..service..")
+                .should().beAnnotatedWith(Service.class)
+                .andShould().haveSimpleNameEndingWith("Service");
+
+    // Rule: Services are only allowed within their package (com.archunit.example.service).
+    @ArchTest
+    public static final ArchRule services_should_only_exist_in_service_package =
+        noClasses().that().resideOutsideOfPackage("..service..")
+                .should().beAnnotatedWith(Service.class)
+                .orShould().haveSimpleNameEndingWith("Service");
+
+    // Rule: Services are called by Controllers and other Services, and they use repositories.
+    @ArchTest
+    public static final ArchRule services_should_only_be_accessed_by_controllers_or_other_services =
+        classes().that().resideInAPackage("..service..")
+                .should().onlyBeAccessed().byAnyPackage("..controller..", "..service..");
+
+    @ArchTest
+    public static final ArchRule services_should_only_access_allowed_packages =
+        classes().that().resideInAPackage("..service..")
+                .should().onlyAccessClassesThat().resideInAnyPackage(commonPackagesAnd("..repository..", "..service.."));
 }
 
-//------------------------------------------------------------------------------------------------------------------
-// Repositories só podem ser acessados por Services.
-@Test
-@DisplayName("Repositories should only be accessed by Services")
-public void repositories_should_only_be_accessed_by_services() {
-classes().that().resideInAPackage("..repository..")
-        .should().onlyBeAccessed().byClassesThat().resideInAPackage("..service..")
-        .check(classes);
-}
+```
 
-//------------------------------------------------------------------------------------------------------------------
-// Repositories só são permitidos dentro do seu pacote (com.archunit.example.model.repository).
-@Test
-@DisplayName("Repositories should only exists in your package")
-public void repositories_should_only_exists_in_repository_package() {
-noClasses().that().resideOutsideOfPackage("..repository..")
-        .should().beAnnotatedWith(Repository.class)
-        .orShould().haveSimpleNameEndingWith("Repository")
-        .check(classes);
+#### Repository Rules Example
+```java
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
+import org.springframework.data.repository.CrudRepository; // Or JpaRepository, etc.
+import org.springframework.stereotype.Repository;
+
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+
+@AnalyzeClasses(packages = "com.archunit.example")
+public class RepositoryArchTest {
+
+    // Rule: Repositories are interfaces, have the suffix 'Repository', extend a Spring Data repository interface, and have the @Repository annotation.
+    @ArchTest
+    public static final ArchRule repositories_should_be_correctly_defined =
+        classes().that().resideInAPackage("..repository..")
+                .should().beAnnotatedWith(Repository.class)
+                .andShould().haveSimpleNameEndingWith("Repository")
+                .andShould().beInterfaces()
+                .andShould().beAssignableTo(CrudRepository.class); // Or JpaRepository, PagingAndSortingRepository as appropriate
+
+    // Rule: Repositories can only be accessed by Services (and themselves, for helper methods or default implementations).
+    @ArchTest
+    public static final ArchRule repositories_should_only_be_accessed_by_services =
+        classes().that().resideInAPackage("..repository..")
+                .should().onlyBeAccessed().byClassesThat().resideInAnyPackage("..service..", "..repository..");
+
+    // Rule: Repositories are only allowed within their package (e.g., com.archunit.example.model.repository).
+    @ArchTest
+    public static final ArchRule repositories_should_only_exist_in_repository_package =
+        noClasses().that().resideOutsideOfPackage("..repository..")
+                .should().beAnnotatedWith(Repository.class)
+                .orShould().haveSimpleNameEndingWith("Repository");
 }
 ```
 
 ### Layer Access Definitions
 
-Em vez de colocarmos as definições de acesso dentro dos testes anteriores, podemos separá-los em um testes específico para isso. Que vai expor a definição das camadas e seus acessos, e ver se tudo está ok. Dessa forma podemos deixar para os testes específicos (controllers/services/repositorys) as validações e regras da própria classe.
+Instead of placing access definitions within the previous tests, we can separate them into a specific test for this purpose. This will expose the definition of layers and their accesses, and check if everything is okay. This way, we can leave specific validations and rules for the respective class tests (controllers/services/repositories).
 
 ```java
-@Test
-@DisplayName("Layer access definitions")
-public void layers_access_check() {
-Architectures.layeredArchitecture()
-        .layer("Controller").definedBy("com.archunit.example.controller..")
-        .layer("Service").definedBy("com.archunit.example.service..")
-        .layer("Model").definedBy("com.archunit.example.model..")
-        .whereLayer("Controller").mayNotBeAccessedByAnyLayer()
-        .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller")
-        .whereLayer("Model").mayOnlyBeAccessedByLayers("Service")
-        .check(classes);
+import com.tngtech.archunit.junit.AnalyzeClasses;
+import com.tngtech.archunit.junit.ArchTest;
+import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.library.Architectures;
+
+@AnalyzeClasses(packages = "com.archunit.example")
+public class LayerArchTest {
+
+    @ArchTest
+    public static final ArchRule layers_access_check =
+        Architectures.layeredArchitecture()
+                .consideringAllDependencies() // Optional: consider all dependencies including JDK, third-party libs
+                .layer("Config").definedBy("com.archunit.example.config..")
+                .layer("Controller").definedBy("com.archunit.example.controller..")
+                .layer("Service").definedBy("com.archunit.example.service..")
+                .layer("Repository").definedBy("com.archunit.example.model.repository..")
+                .layer("Model").definedBy("com.archunit.example.model..", "com.archunit.example.model.domain..")
+
+                .whereLayer("Controller").mayOnlyBeAccessedByLayers("Config")
+                .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Service", "Config")
+                .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service")
+                .whereLayer("Model").mayOnlyBeAccessedByLayers("Repository", "Service", "Controller", "Config", "java..");
 }
 ```
 
-### Conclusão
+### Conclusion
 
-Esse é um pequeno exemplo do uso do ArchUnit. Por isso inclusive a escolha de uma projeto classico MVC/Java para ficar mais facil o entendimento.
+This is a small example of using ArchUnit. That's why a classic MVC/Java project was chosen to make it easier to understand.
+The main goal is to show how ArchUnit can be used to define and enforce architectural rules, helping to maintain a clean and well-structured codebase.

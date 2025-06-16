@@ -4,6 +4,22 @@
 
 This example project demonstrates how to use ArchUnit to enforce architectural rules in a Spring Boot application.
 
+## Running the Application
+
+To run the application, use the following Maven command:
+```bash
+mvn spring-boot:run
+```
+Make sure you have Java and Maven installed and configured in your environment.
+
+## Running Tests
+
+To run the tests, use the following Maven command:
+```bash
+mvn test
+```
+This command will execute all tests in the project, including the ArchUnit architecture tests defined in the `src/test/java` directory.
+
 ### Project Structure Examples
 
 #### Controller
@@ -95,34 +111,28 @@ public interface ProdutoRepository extends JpaRepository<Produto, String> {
 
 ### Testing the Architecture
 
-Before creating tests, we need to add the ArchUnit dependency to our project's `pom.xml`.
+Before creating tests, we need to add the ArchUnit dependencies to our project's `pom.xml`.
 
+The core ArchUnit library:
 ```xml
 <dependency>
     <groupId>com.tngtech.archunit</groupId>
     <artifactId>archunit</artifactId>
-    <version>1.0.1</version>
+    <version>1.4.1</version>
     <scope>test</scope>
 </dependency>
 ```
 
-For JUnit 5 integration, you also need to include `archunit-junit5-api` and the engine:
-
+For JUnit 5 integration, we use `archunit-junit5`:
 ```xml
 <dependency>
     <groupId>com.tngtech.archunit</groupId>
-    <artifactId>archunit-junit5-api</artifactId>
-    <version>1.0.1</version>
-    <scope>test</scope>
-</dependency>
-<dependency>
-    <groupId>com.tngtech.archunit</groupId>
-    <artifactId>archunit-junit5-engine</artifactId>
-    <version>1.0.1</version>
+    <artifactId>archunit-junit5</artifactId>
+    <version>1.2.2</version>
     <scope>test</scope>
 </dependency>
 ```
-(Note: Often, just including `archunit-junit5` is sufficient as it brings in both `api` and `engine` transitively. However, this project explicitly uses `archunit-junit5-api` directly in the `pom.xml`.)
+(Note: Generally, including `archunit-junit5` is sufficient as it transitively includes the necessary API and engine components. This project uses `archunit` for the core functionalities and `archunit-junit5` for seamless JUnit 5 integration.)
 
 
 With this, we can create the tests and start 'checking' the limits we want for our architecture. We'll begin with the controllers.

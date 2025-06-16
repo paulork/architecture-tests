@@ -1,9 +1,8 @@
-package com.archunit.example.architeture;
+package com.archunit.example.architecture;
 
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
-import org.junit.jupiter.api.DisplayName;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

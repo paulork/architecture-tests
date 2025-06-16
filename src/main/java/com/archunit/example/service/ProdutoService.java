@@ -1,6 +1,5 @@
 package com.archunit.example.service;
 
-import com.archunit.example.controller.ProdutoController;
 import com.archunit.example.model.domain.Produto;
 import com.archunit.example.model.repository.ProdutoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,11 +8,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProdutoService {
 
-    @Autowired
-    private ProdutoRepository prodRepository;
+    private final ProdutoRepository prodRepository;
 
-    @Autowired
-    private ProdutoController prodController;
+    public ProdutoService(ProdutoRepository prodRepository) {
+        this.prodRepository = prodRepository;
+    }
 
     public Produto save(Produto produto) {
         // String id = produto.getId(); // Unused variable removed

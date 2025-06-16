@@ -1,4 +1,4 @@
-package com.archunit.example.architeture;
+package com.archunit.example.architecture;
 
 import java.util.Arrays;
 import java.util.stream.Stream;

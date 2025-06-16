@@ -145,7 +145,7 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import org.springframework.web.bind.annotation.RestController;
 
-import static com.archunit.example.architeture.ArchTestConstants.commonPackagesAnd;
+import static com.archunit.example.architecture.ArchTestConstants.commonPackagesAnd;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
@@ -189,7 +189,7 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import org.springframework.stereotype.Service;
 
-import static com.archunit.example.architeture.ArchTestConstants.commonPackagesAnd;
+import static com.archunit.example.architecture.ArchTestConstants.commonPackagesAnd;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 

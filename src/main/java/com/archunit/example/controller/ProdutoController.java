@@ -1,7 +1,6 @@
 package com.archunit.example.controller;
 
 import com.archunit.example.model.domain.Produto;
-import com.archunit.example.model.repository.ProdutoRepository;
 import com.archunit.example.service.ProdutoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,11 +10,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/produto")
 public class ProdutoController {
 
-    @Autowired
-    private ProdutoService prodService;
+    private final ProdutoService prodService;
 
-    @Autowired
-    private ProdutoRepository prodRepository;
+    public ProdutoController(ProdutoService prodService) {
+        this.prodService = prodService;
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

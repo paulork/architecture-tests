@@ -1,12 +1,11 @@
-package com.archunit.example.architeture;
+package com.archunit.example.architecture;
 
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
-import org.junit.jupiter.api.DisplayName;
 import org.springframework.stereotype.Service;
 
-import static com.archunit.example.architeture.ArchTestConstants.commonPackagesAnd;
+import static com.archunit.example.architecture.ArchTestConstants.commonPackagesAnd;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
